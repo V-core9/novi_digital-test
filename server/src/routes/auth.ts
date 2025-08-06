@@ -7,11 +7,6 @@ import { generateAccessToken, generateRefreshToken } from '../utils/jwt'
 
 const router = express.Router()
 
-/* GET home page. */
-router.get('/', function (req, res, next) {
-  res.json({ title: 'TsExpress API', version: '1.0', date: Date() })
-})
-
 /* POST register new user. */
 router.post('/register', async (req, res) => {
   try {
