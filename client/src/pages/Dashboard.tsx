@@ -13,7 +13,9 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h2>Welcome to the dashboard</h2>
+      <h2>
+        Welcome {user.firstName} {user.lastName}
+      </h2>
       {user && <pre style={{ backgroundColor: '#eee', padding: '1rem' }}>{JSON.stringify(user, null, 2)}</pre>}
       <Button
         variant='outlined'

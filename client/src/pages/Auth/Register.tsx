@@ -1,5 +1,6 @@
 import { Button, Container, TextField, Typography } from '@mui/material'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import fetchWrapper from '../../utils/fetchWrapper'
 import apiLocation from '../../configs/apiLocation'
 
@@ -10,6 +11,8 @@ export default function Register() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+
+  const navigate = useNavigate()
 
   const isEmailValid = (email: string) => /\S+@\S+\.\S+/.test(email)
 
@@ -44,6 +47,8 @@ export default function Register() {
         { auth: false }
       )
       setSuccess('Registration successful. You can now log in.')
+
+      navigate('/')
     } catch (err: any) {
       setError(err.message || 'Registration failed')
     }
