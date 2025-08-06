@@ -3,6 +3,7 @@ import cookieParser from 'cookie-parser'
 
 import * as middlewares from './middleware/index.middleware'
 import indexRouter from './routes/index'
+import authRouter from './routes/auth'
 import usersRouter from './routes/users'
 
 import { config } from 'dotenv'
@@ -25,6 +26,7 @@ app.use(express.static(path.join(__dirname, 'public')))
 
 // API Routes
 app.use('/', indexRouter)
+app.use('/auth', authRouter)
 app.use('/users', usersRouter)
 
 // Not Found (404) & Error Handlers

@@ -1,115 +1,82 @@
 import express from 'express'
 import bcrypt from 'bcrypt'
-import { v4 as uuidv4 } from 'uuid'
 import jwt from 'jsonwebtoken'
-import createSHA256 from '../utils/createSHA256'
 
-import { generateTokens } from '../utils/jwt'
+import User from '../models/User'
+import { generateAccessToken, generateRefreshToken } from '../utils/jwt'
 
 const router = express.Router()
 
+/* GET home page. */
+router.get('/', function (req, res, next) {
+  res.json({ title: 'TsExpress API', version: '1.0', date: Date() })
+})
+
 /* POST register new user. */
-router.post('/register', async (req, res, next) => {
+router.post('/register', async (req, res) => {
   try {
-    const { email, password } = req.body
-    if (!email || !password) {
-      res.status(400)
-      throw new Error('You must provide an email and a password.')
-    }
+    const { firstName, lastName, email, password } = req.body
 
-    const existingUser = await findUserByEmail(email)
+    const existingUser = await User.findOne({ email })
+    if (existingUser) return res.status(400).json({ message: 'Email already in use' })
 
-    if (existingUser) {
-      res.status(400)
-      throw new Error('Email already in use.')
-    }
+    // ✅ Hash the password using bcrypt
+    const hashedPassword = await bcrypt.hash(password, 10)
 
-    const username = req.body.username || uuidv4()
+    const user = new User({ firstName, lastName, email, password: hashedPassword })
+    await user.save()
 
-    const user = await createUserByEmailAndPassword({ email, password, username })
-
-    res.json({
-      id: user.id,
-      username: user.username
-    })
+    res.status(201).json({ message: 'User created', user: { email, firstName, lastName } })
   } catch (err) {
-    next(err)
+    res.status(500).json({ error: err.message })
   }
 })
 
 /* POST login route */
-router.post('/login', async (req, res, next) => {
+router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body
-    if (!email || !password) {
-      res.status(400)
-      throw new Error('You must provide an email and a password.')
-    }
 
-    const existingUser = await findUserByEmail(email)
+    const user = await User.findOne({ email })
+    if (!user) return res.status(401).json({ message: 'Invalid credentials' })
 
-    if (!existingUser) {
-      res.status(403)
-      throw new Error('Invalid login credentials.')
-    }
+    const valid = await bcrypt.compare(password, user.password)
+    if (!valid) return res.status(401).json({ message: 'Invalid credentials' })
 
-    const validPassword = await bcrypt.compare(password, existingUser.password)
-    if (!validPassword) {
-      res.status(403)
-      throw new Error('Invalid login credentials.')
-    }
-
-    const jti = uuidv4()
-    const { accessToken, refreshToken } = generateTokens(existingUser, jti)
-    // await addRefreshTokenToWhitelist({ jti, refreshToken, userId: existingUser.id })
+    const accessToken = generateAccessToken(user)
+    const refreshToken = generateRefreshToken(user)
 
     res.json({
       accessToken,
-      refreshToken
+      refreshToken,
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email
+      }
     })
   } catch (err) {
-    next(err)
+    res.status(500).json({ error: err.message })
   }
 })
 
 /* POST refresh access token so user can stay logged in */
-router.post('/refreshToken', async (req, res, next) => {
-  try {
-    const { refreshToken } = req.body
-    if (!refreshToken) {
-      res.status(400)
-      throw new Error('Missing refresh token.')
-    }
-    const payload = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET)
-    const savedRefreshToken = await findRefreshTokenById(payload.jti)
+router.post('/refresh-token', (req, res) => {
+  const { refreshToken } = req.body
 
-    if (!savedRefreshToken || savedRefreshToken.revoked === true) {
-      res.status(401)
-      throw new Error('Unauthorized')
-    }
-
-    const hashedToken = createSHA256(refreshToken)
-    if (hashedToken !== savedRefreshToken.hashedToken) {
-      res.status(401)
-      throw new Error('Unauthorized')
-    }
-
-    const user = await findUserById(payload.userId)
-    if (!user) {
-      res.status(401)
-      throw new Error('Unauthorized')
-    }
-
-    const jti = uuidv4()
-    const { accessToken, refreshToken: newRefreshToken } = generateTokens(user, jti)
-
-    res.json({
-      accessToken,
-      refreshToken: newRefreshToken
-    })
-  } catch (err) {
-    next(err)
+  if (!refreshToken) {
+    return res.status(401).json({ message: 'Refresh token required' })
   }
+
+  jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET, (err, payload) => {
+    if (err) return res.status(403).json({ message: 'Invalid or expired refresh token' })
+
+    const accessToken = generateAccessToken({ _id: payload.userId })
+    const refreshToken = generateRefreshToken({ _id: payload.userId })
+
+    res.json({ accessToken, refreshToken })
+  })
 })
 
-module.exports = router
+export default router
