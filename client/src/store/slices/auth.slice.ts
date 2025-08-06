@@ -1,117 +1,63 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
-import { jwtDecode } from 'jwt-decode'
+import fetchWrapper from '../../helpers/fetch-wrapper'
 
-// import { toast } from 'react-toastify'
+const apiLocation = 'http://localhost:3000'
 
-import { fetchWrapper } from '../../helpers/fetch-wrapper'
-import { history } from '../../helpers/history'
-
-// create slice
-const name = 'auth'
-
-const initialState = {
-  user: JSON.parse(localStorage.getItem('user')) || null,
-  loading: null,
-  error: null
+interface AuthState {
+  accessToken: string | null
+  refreshToken: string | null
+  user: any
+  isLoading: boolean
 }
 
-const slice = createSlice({
-  name,
+const initialState: AuthState = JSON.parse(localStorage.getItem('user') || '{}') || {
+  accessToken: null,
+  refreshToken: null,
+  user: null,
+  isLoading: false
+}
+
+export const login = createAsyncThunk(
+  'auth/login',
+  async (credentials: { email: string; password: string }, { rejectWithValue }) => {
+    try {
+      const res = await fetchWrapper.post(apiLocation + '/auth/login', credentials, { auth: false })
+      return res
+    } catch (err: any) {
+      return rejectWithValue(err.message)
+    }
+  }
+)
+
+const authSlice = createSlice({
+  name: 'auth',
   initialState,
   reducers: {
-    logout(state) {
+    logout: (state) => {
+      state.accessToken = null
+      state.refreshToken = null
       state.user = null
       localStorage.removeItem('user')
-      // toast('User Logged Out!', { type: 'info' })
-      //window.location.reload();
     }
   },
-  extraReducers(builder) {
-    // Login
+  extraReducers: (builder) => {
     builder
       .addCase(login.pending, (state) => {
-        state.error = null
-        // toast("Login Attempted", { type: "info" });
+        state.isLoading = true
       })
       .addCase(login.fulfilled, (state, action) => {
-        let user = action.payload
+        state.accessToken = action.payload.accessToken
+        state.refreshToken = action.payload.refreshToken
+        state.user = action.payload.user
+        state.isLoading = false
 
-        const { accessToken, refreshToken } = user
-
-        user = jwtDecode(refreshToken)
-        user.accessToken = jwtDecode(accessToken)
-        user.accessToken.token = accessToken
-        user.refreshToken = jwtDecode(refreshToken)
-        user.refreshToken.token = refreshToken
-
-        // store user details and jwt token in local storage to keep user logged in between page refreshes
-        localStorage.setItem('user', JSON.stringify(user))
-        state.user = user
-
-        // get return url from location state or default to home page
-        history.navigate('/')
-        // toast('Login Successful!', { type: 'success' })
+        localStorage.setItem('user', JSON.stringify(state))
       })
-      .addCase(login.rejected, (state, action) => {
-        state.error = action.error
-        // toast(state.error.message, { type: 'error' })
-      })
-
-    // Register
-    builder
-      .addCase(register.pending, (state) => {
-        state.error = null
-      })
-      .addCase(register.fulfilled, (state, action) => {
-        // get return url from location state or default to home page
-        const { from } = history.location.state || { from: { pathname: '/login' } }
-        history.navigate(from)
-        // toast('Register Successful!', { type: 'success' })
-      })
-      .addCase(register.rejected, (state, action) => {
-        state.error = action.error
-        // toast(state.error.message, { type: 'error' })
-      })
-
-    // Refresh Auth Tokens
-    builder
-      .addCase(refreshToken.fulfilled, (state, action) => {
-        let user = action.payload
-
-        const { accessToken, refreshToken } = user
-
-        user = jwtDecode(refreshToken)
-        user.accessToken = jwtDecode(accessToken)
-        user.accessToken.token = accessToken
-        user.refreshToken = jwtDecode(refreshToken)
-        user.refreshToken.token = refreshToken
-
-        // store user details and jwt token in local storage to keep user logged in between page refreshes
-        localStorage.setItem('user', JSON.stringify(user))
-        state.user = user
-      })
-      .addCase(refreshToken.rejected, (state, action) => {
-        state.error = action.error
+      .addCase(login.rejected, (state) => {
+        state.isLoading = false
       })
   }
 })
 
-const login = createAsyncThunk(
-  `${name}/login`,
-  async ({ email, password }) => await fetchWrapper.post(`http://localhost/api/auth/login`, { email, password })
-)
-
-const register = createAsyncThunk(
-  `${name}/register`,
-  async ({ username, email, password }) =>
-    await fetchWrapper.post(`http://localhost/api/auth/register`, { username, email, password })
-)
-
-const refreshToken = createAsyncThunk(
-  `${name}/refreshToken`,
-  async ({ refreshToken }) => await fetchWrapper.post(`http://localhost/api/auth/refreshToken`, { refreshToken })
-)
-
-// ACTUAL EXPORTS
-export const authActions = { ...slice.actions, login, register, refreshToken }
-export default slice.reducer
+export const authActions = { ...authSlice.actions, login }
+export default authSlice.reducer

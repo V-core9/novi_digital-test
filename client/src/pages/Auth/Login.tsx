@@ -7,7 +7,7 @@ import type { RootState } from '../../store'
 
 const { login } = authActions
 
-function LoginPage() {
+export default function LoginPage() {
   const dispatch = useDispatch()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
@@ -46,5 +46,3 @@ function LoginPage() {
     </Container>
   )
 }
-
-export default LoginPage()
