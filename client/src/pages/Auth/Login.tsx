@@ -12,7 +12,7 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const isLoading = useSelector((state: RootState) => state.auth.loading)
+  const isLoading = useSelector((state: RootState) => state.auth.isLoading)
 
   const handleLogin = async () => {
     const res = await dispatch<any>(login({ email, password }))

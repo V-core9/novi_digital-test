@@ -1,7 +1,6 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit'
-import fetchWrapper from '../../helpers/fetch-wrapper'
-
-const apiLocation = 'http://localhost:3000'
+import fetchWrapper from '../../utils/fetchWrapper'
+import apiLocation from '../../configs/apiLocation'
 
 interface AuthState {
   accessToken: string | null
