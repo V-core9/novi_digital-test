@@ -3,13 +3,14 @@ import { jwtDecode } from 'jwt-decode'
 
 // import { toast } from 'react-toastify'
 
-import { history, fetchWrapper } from '../../helpers'
+import { fetchWrapper } from '../../helpers/fetch-wrapper'
+import { history } from '../../helpers/history'
 
 // create slice
 const name = 'auth'
 
 const initialState = {
-  user: JSON.parse(localStorage.getItem('user')),
+  user: JSON.parse(localStorage.getItem('user')) || null,
   loading: null,
   error: null
 }

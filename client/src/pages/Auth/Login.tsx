@@ -1,9 +1,11 @@
 import { Button, Container, TextField, CircularProgress } from '@mui/material'
 import { useDispatch, useSelector } from 'react-redux'
-import { login } from '../../store/slices/auth.slice'
+import { authActions } from '../../store/slices/auth.slice'
 import { useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import { RootState } from '../../store'
+import type { RootState } from '../../store'
+
+const { login } = authActions
 
 function LoginPage() {
   const dispatch = useDispatch()

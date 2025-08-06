@@ -1,6 +1,6 @@
 import { Button } from '@mui/material'
 import { useDispatch, useSelector } from 'react-redux'
-import { RootState } from '../store'
+import type { RootState } from '../store/index.ts'
 import { logout } from '../store/slices/auth.slice'
 
 export default function Dashboard() {
