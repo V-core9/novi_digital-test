@@ -1,40 +1,36 @@
-import { Button, Container, TextField, Typography } from '@mui/material'
 import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import type { SubmitHandler } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
+import { TextField, Snackbar, Alert, Box, Container, Button, Typography, CircularProgress } from '@mui/material'
+import type { SnackbarCloseReason } from '@mui/material'
+
+import LaunchIcon from '@mui/icons-material/Launch'
+
 import fetchWrapper from '../../utils/fetchWrapper'
 import apiLocation from '../../configs/apiLocation'
 
-export default function Register() {
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [success, setSuccess] = useState('')
+interface FormValues {
+  firstName: string
+  lastName: string
+  email: string
+  password: string
+}
 
+export default function RegisterPage(): JSX.Element {
   const navigate = useNavigate()
+  const {
+    register,
+    handleSubmit,
+    formState: { errors }
+  } = useForm<FormValues>()
 
-  const isEmailValid = (email: string) => /\S+@\S+\.\S+/.test(email)
+  const [registerError, setRegisterError] = useState('')
+  const [showToast, setShowToast] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleSubmit = async () => {
-    setError('')
-    setSuccess('')
-
-    if (!firstName.trim() || !lastName.trim()) {
-      setError('First and last name are required.')
-      return
-    }
-
-    if (!isEmailValid(email)) {
-      setError('Invalid email address.')
-      return
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.')
-      return
-    }
-
+  const onSubmit: SubmitHandler<FormValues> = async ({ firstName, lastName, email, password }: FormValues) => {
+    setIsLoading((prev) => true)
     try {
       await fetchWrapper.post(
         apiLocation + '/auth/register',
@@ -46,56 +42,136 @@ export default function Register() {
         },
         { auth: false }
       )
-      setSuccess('Registration successful. You can now log in.')
-
-      navigate('/')
+      setShowToast(true)
+      setRegisterError('')
     } catch (err: any) {
-      setError(err.message || 'Registration failed')
+      setRegisterError(err.message || 'Registration failed')
     }
+    setIsLoading((prev) => false)
+  }
+
+  const handleClose = (event: React.SyntheticEvent | Event, reason?: SnackbarCloseReason) => {
+    if (reason === 'clickaway') {
+      return
+    }
+    setShowToast(false)
   }
 
   return (
     <Container maxWidth='xs'>
-      <Typography
-        variant='h5'
-        gutterBottom
+      <Box
+        maxWidth={400}
+        mx='auto'
+        mt={8}
+        p={4}
+        boxShadow={3}
+        borderRadius={2}
       >
-        Register
-      </Typography>
-      <TextField
-        label='First Name'
-        fullWidth
-        margin='normal'
-        onChange={(e) => setFirstName(e.target.value)}
-      />
-      <TextField
-        label='Last Name'
-        fullWidth
-        margin='normal'
-        onChange={(e) => setLastName(e.target.value)}
-      />
-      <TextField
-        label='Email'
-        fullWidth
-        margin='normal'
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      <TextField
-        label='Password'
-        type='password'
-        fullWidth
-        margin='normal'
-        onChange={(e) => setPassword(e.target.value)}
-      />
-      {error && <Typography color='error'>{error}</Typography>}
-      {success && <Typography color='primary'>{success}</Typography>}
+        <Snackbar
+          open={showToast}
+          autoHideDuration={6000}
+          onClose={handleClose}
+        >
+          <Alert
+            onClose={handleClose}
+            severity='success'
+            variant='filled'
+            sx={{ width: '100%' }}
+          >
+            Registration Successful. You can now login.
+            <Button
+              variant='contained'
+              onClick={() => navigate('/login')}
+              size='small'
+              endIcon={<LaunchIcon />}
+              sx={{ ml: 2 }}
+            >
+              Goto Login
+            </Button>
+          </Alert>
+        </Snackbar>
+
+        <Typography
+          variant='h5'
+          gutterBottom
+        >
+          Register
+        </Typography>
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          noValidate
+        >
+          <TextField
+            fullWidth
+            label='First Name'
+            margin='normal'
+            {...register('firstName', { required: 'First name is required' })}
+            error={!!errors.firstName}
+            helperText={errors.firstName?.message}
+          />
+
+          <TextField
+            fullWidth
+            label='Last Name'
+            margin='normal'
+            {...register('lastName', { required: 'Last name is required' })}
+            error={!!errors.lastName}
+            helperText={errors.lastName?.message}
+          />
+
+          <TextField
+            fullWidth
+            label='Email'
+            margin='normal'
+            type='email'
+            {...register('email', {
+              required: 'Email is required',
+              pattern: {
+                value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                message: 'Enter a valid email'
+              }
+            })}
+            error={!!errors.email}
+            helperText={errors.email?.message}
+          />
+
+          <TextField
+            fullWidth
+            label='Password'
+            margin='normal'
+            type='password'
+            {...register('password', {
+              required: 'Password is required',
+              minLength: {
+                value: 6,
+                message: 'Password must be at least 6 characters'
+              }
+            })}
+            error={!!errors.password}
+            helperText={errors.password?.message}
+          />
+
+          {registerError && <Typography color='error'>Error: {registerError}</Typography>}
+
+          <Button
+            fullWidth
+            variant='contained'
+            color='primary'
+            type='submit'
+            sx={{ mt: 2 }}
+          >
+            Register
+          </Button>
+        </form>
+      </Box>
       <Button
-        variant='contained'
-        fullWidth
+        variant='outlined'
         sx={{ mt: 2 }}
-        onClick={handleSubmit}
+        disabled={isLoading}
+        onClick={(ev) => navigate('/login')}
+        fullWidth
       >
-        Register
+        {isLoading ? <CircularProgress size={24} /> : 'Open Login Page'}
       </Button>
     </Container>
   )

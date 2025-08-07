@@ -1,7 +1,7 @@
 import { Button } from '@mui/material'
 import { useDispatch, useSelector } from 'react-redux'
-import type { RootState } from '../store/index.ts'
-import { authActions } from '../store/slices/auth.slice'
+import type { RootState } from '../../store/index.ts'
+import { authActions } from '../../store/slices/auth.slice.ts'
 
 export default function Dashboard() {
   const user = useSelector((state: RootState) => state.auth.user)
