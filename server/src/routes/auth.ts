@@ -1,11 +1,11 @@
 import express from 'express'
+const router = express.Router()
+
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 
 import User from '../models/User'
 import { generateAccessToken, generateRefreshToken } from '../utils/jwt'
-
-const router = express.Router()
 
 /* POST register new user. */
 router.post('/register', async (req, res) => {

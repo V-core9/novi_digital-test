@@ -1,6 +1,7 @@
-import express from 'express'
 
+import express from 'express'
 const router = express.Router()
+
 
 const freshRootInfoMessage = () => ({ title: 'TsExpress API', version: '1.0', date: Date() })
 
